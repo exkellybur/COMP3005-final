@@ -64,8 +64,12 @@ def insert_staff(email, password, name, role):
     table = role + "s"
     username = role + "Name"
     returnID = role + "ID"
-    cursor.execute("INSERT INTO %s(email, pass, %s) VALUES (%s, %s, %s) RETURNING %d", (table, username, email, password, name, returnID))
-    userID = cursor.fetchone()[0] # retrieve memberID
+    if role == "trainer":
+        cursor.execute("INSERT INTO Trainers(email, pass, trainerName) VALUES (%s, %s, %s) RETURNING %s", (email, password, name, returnID))
+        userID = cursor.fetchone()[0] # retrieve memberID
+    elif role == "admin":
+        cursor.execute("INSERT INTO Admins(email, pass, adminName) VALUES (%s, %s, %s) RETURNING %s", (email, password, name, returnID))
+        userID = cursor.fetchone()[0] # retrieve memberID
     conn.commit()
     conn.close()
     return userID
@@ -255,7 +259,6 @@ def register_class(memberID):
         cursor.execute("INSERT INTO ClassRegistrations (memberID, classID) VALUES (%s, %s)",(memberID, selection))
         conn.commit()
         print("Successfully registered for the class!")
-        conn.close()
 
         #create a billing for the class
         cursor.execute("INSERT INTO Billing (memberID, amount, payFor) VALUES (%s, %s, %s)", (memberID, 35.00, 'Group Class Registration'))
@@ -392,17 +395,22 @@ def manage_rooms():
     cursor.execute("SELECT roomID, roomName, booked FROM Rooms")
     rooms = cursor.fetchall()
     if rooms is not None:
-        print("\nRooms:")
+        print("\nRooms-")
         for room in rooms:
             roomID, roomName, booked = room
-            print(f"Room Name: {roomName}")
+            print(f"\nRoom Name: {roomName}")
             print(f"Booked: {'Yes' if booked else 'No'}")
 
             #if room is booked, display the group class that booked it 
             if booked:
                 cursor.execute("SELECT className FROM GroupClasses WHERE roomID = %s", (roomID,))
                 classes = cursor.fetchall()
-                print("Booked by: " + classes[0])
+                if classes is not None:
+                    print("Booked by:")
+                    for c in classes:
+                        print(c[0])
+                else:
+                    print("No classes booked for this room.")
     else:
         print("No rooms found.")
 
